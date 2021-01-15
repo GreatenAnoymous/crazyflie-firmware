@@ -77,7 +77,8 @@ void attitudeControllerGetActuatorOutput(int16_t* roll, int16_t* pitch, int16_t*
 
 
 //Functions gt adds
-void flip_controller(float rollRateActual, float pitchRateActual, float yawRateActual,float eulerRollActual, float eulerPitchActual, float eulerYawActual);
+//void flip_controller(float eulerRollActual, float eulerPitchActual, float eulerYawActual,float rollRateActual, float pitchRateActual, float yawRateActual,float *rateRollDisired,float *ratePitchDisired,float *rateYawDisired);
+void flip_controller2(float eulerRollActual, float eulerPitchActual, float eulerYawActual,float rollRateActual, float pitchRateActual, float yawRateActual,float *rateRollDisired,float *ratePitchDisired,float *rateYawDisired);
 void set_mode();
 int get_mode();
 

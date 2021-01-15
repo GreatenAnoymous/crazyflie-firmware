@@ -107,8 +107,10 @@ void controllerPid(control_t *control, setpoint_t *setpoint,
 
       if (setpoint->mode.pitch == modeVelocity) {
         rateDesired.pitch = setpoint->attitudeRate.pitch;
+      }
+
+      if(setpoint->mode.yaw==modeVelocity){
         rateDesired.yaw = setpoint->attitudeRate.yaw;
-      
       }
     
       // TODO: Investigate possibility to subtract gyro drift.
@@ -116,7 +118,7 @@ void controllerPid(control_t *control, setpoint_t *setpoint,
                               rateDesired.roll, rateDesired.pitch, rateDesired.yaw);
     }
     else{
-      flip_controller2(state->attitude.roll, state->attitude.pitch, state->attitude.yaw,sensors->gyro.x, -sensors->gyro.y, sensors->gyro.z);// perform pre-programmed 360 flip manuever!
+      flip_controller2(state->attitude.roll, state->attitude.pitch, state->attitude.yaw,sensors->gyro.x, -sensors->gyro.y, sensors->gyro.z, &rateDesired.roll, &rateDesired.pitch, &rateDesired.yaw);// perform pre-programmed 360 flip manuever!
     }
 
    

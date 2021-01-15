@@ -33,7 +33,7 @@
 #include "log.h"
 #include "math3d.h"
 
-#define ATTITUDE_LPF_CUTOFF_FREQ      15.0f
+#define ATTITUDE_LPF_CUTOFF_FREQ      10.0f
 #define ATTITUDE_LPF_ENABLE false
 #define ATTITUDE_RATE_LPF_CUTOFF_FREQ 40.0f
 #define ATTITUDE_RATE_LPF_ENABLE false
@@ -217,9 +217,9 @@ void attitudeControllerGetActuatorOutput(int16_t* roll, int16_t* pitch, int16_t*
     *yaw = yawOutput;
   }
   else{
-    *roll = clamp(rollOutput,-10000,10000);
+    *roll = clamp(rollOutput,-10920,10920);
     *pitch = clamp(pitchOutput,-32767,32767);
-    *yaw = clamp(yawOutput,-10000,10000);
+    *yaw = clamp(yawOutput,-10920,10920);
   }
    
   
@@ -241,13 +241,13 @@ float omega_dx(float t){
 	float omega_max=720/0.52;
 	float gamma1=(1/omega_max)*Phi_g1;
 	float gamma3=(1/omega_max)*Phi_g3;
-	float beta1=(float)(-(3./4.)*1.0/(gamma1*gamma1*gamma1)*omega_max);
-	float beta3=(float)(-(3./4.)*1.0/(gamma3*gamma3*gamma3)*omega_max);
+	float beta1=-(3./4.)*1.0/(gamma1*gamma1*gamma1)*omega_max;
+	float beta3=-(3./4.)*1.0/(gamma3*gamma3*gamma3)*omega_max;
 	float delta=0.26;
 	if(t<=delta)
 		r=(beta1/3.)*(t-gamma1)*(t-gamma1)*(t-gamma1)-beta1*gamma1*gamma1*t+beta1*gamma1*gamma1*gamma1/3.0;
 	if(t>delta)		
-		r=(beta3/3)*(gamma3+delta-t)*(gamma3+delta-t)*(gamma3+delta-t)-beta3*gamma3*gamma3*(2*gamma3+delta-t)+beta3*gamma3*gamma3*gamma3/3.0;
+		r=(beta3/3.)*(gamma3+delta-t)*(gamma3+delta-t)*(gamma3+delta-t)-beta3*gamma3*gamma3*(2*gamma3+delta-t)+beta3*gamma3*gamma3*gamma3/3.0;
   return r;
 }
 
@@ -277,25 +277,27 @@ void attitudeControllerPositionMode(void){
 }
 
 
-void flip_controller2(float eulerRollActual, float eulerPitchActual, float eulerYawActual,float rollRateActual, float pitchRateActual, float yawRateActual){
-  float omega_des=720,rateRollDisired,ratePitchDisired,rateYawDisired;
+void flip_controller2(float eulerRollActual, float eulerPitchActual, float eulerYawActual,float rollRateActual, float pitchRateActual, float yawRateActual,float *rateRollDisired,float *ratePitchDisired,float *rateYawDisired){
+  float omega_des=720;//rateRollDisired,ratePitchDisired,rateYawDisired;
   attitudeControllerCorrectAttitudePID(eulerRollActual, eulerPitchActual, eulerYawActual,0, 0,  0,
-       & rateRollDisired, & ratePitchDisired, & rateYawDisired);
+      rateRollDisired, ratePitchDisired, rateYawDisired);
   switch (_state)
   {
   case INIT:
-    attitudeControllerAgressiveMode();_state=START;t_flip = usecTimestamp() / 1e6;break;
+    attitudeControllerAgressiveMode();_state=START;t_flip = usecTimestamp() / 1e6;
     /* code */
     break;
   case START:
     t_count=usecTimestamp() / 1e6-t_flip;
     omega_des=omega_dx(t_count);
-    ratePitchDisired=omega_des;
-    attitudeControllerCorrectRatePID(rollRateActual, pitchRateActual, yawRateActual,rateRollDisired,ratePitchDisired,rateYawDisired);
+    *ratePitchDisired=omega_des;
+    *rateRollDisired=0;
+    *rateYawDisired=0;
+    attitudeControllerCorrectRatePID(rollRateActual, pitchRateActual, yawRateActual,*rateRollDisired,*ratePitchDisired,*rateYawDisired);
     if(t_count>0.52) _state=COMPLETE;
     break;
   case RECOVER:
-    attitudeControllerCorrectRatePID(rollRateActual, pitchRateActual, yawRateActual,rateRollDisired,ratePitchDisired,rateYawDisired);
+    attitudeControllerCorrectRatePID(rollRateActual, pitchRateActual, yawRateActual,*rateRollDisired,*ratePitchDisired,*rateYawDisired);
     t_count=usecTimestamp() / 1e6-t_flip;
     if(eulerPitchActual<10.0f&&eulerPitchActual>-10.0f) _state=COMPLETE;
     break;
@@ -310,8 +312,10 @@ void flip_controller2(float eulerRollActual, float eulerPitchActual, float euler
     break;
   }
 }
+
+/*
 //run the flip controller
-void flip_controller(float eulerRollActual, float eulerPitchActual, float eulerYawActual,float rollRateActual, float pitchRateActual, float yawRateActual){
+void flip_controller(float eulerRollActual, float eulerPitchActual, float eulerYawActual,float rollRateActual, float pitchRateActual, float yawRateActual,float &rateRollDisired,float &ratePitchDisired,float &rateYawDisired){
   float omega_des=1200,rateRollDisired,ratePitchDisired,rateYawDisired;
   attitudeControllerCorrectAttitudePID(eulerRollActual, eulerPitchActual, eulerYawActual,0, 0,  0,
        & rateRollDisired, & ratePitchDisired, & rateYawDisired);
@@ -341,7 +345,7 @@ void flip_controller(float eulerRollActual, float eulerPitchActual, float eulerY
 
 }
 
-
+*/
 LOG_GROUP_START(pid_attitude)
 LOG_ADD(LOG_FLOAT, roll_outP, &pidRoll.outP)
 LOG_ADD(LOG_FLOAT, roll_outI, &pidRoll.outI)
