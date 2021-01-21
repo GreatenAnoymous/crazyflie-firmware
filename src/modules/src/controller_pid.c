@@ -65,6 +65,7 @@ void controllerPid(control_t *control, setpoint_t *setpoint,
   if (RATE_DO_EXECUTE(ATTITUDE_RATE, tick)) {
     // Rate-controled YAW is moving YAW angle setpoint
     if (setpoint->mode.yaw == modeVelocity) {
+       rateDesired.yaw = setpoint->attitudeRate.yaw;
        attitudeDesired.yaw += setpoint->attitudeRate.yaw * ATTITUDE_UPDATE_DT;
     } else {
       attitudeDesired.yaw = setpoint->attitude.yaw;
@@ -109,9 +110,7 @@ void controllerPid(control_t *control, setpoint_t *setpoint,
         rateDesired.pitch = setpoint->attitudeRate.pitch;
       }
 
-      if(setpoint->mode.yaw==modeVelocity){
-        rateDesired.yaw = setpoint->attitudeRate.yaw;
-      }
+  
     
       // TODO: Investigate possibility to subtract gyro drift.
       attitudeControllerCorrectRatePID(sensors->gyro.x, -sensors->gyro.y, sensors->gyro.z,

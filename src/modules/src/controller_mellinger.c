@@ -72,6 +72,10 @@ static float r_pitch;
 static float r_yaw;
 static float accelz;
 
+
+static attitude_t attitudeDesired;
+static attitude_t rateDesired;
+
 void positionModeInit(){
 
   // XY Position PID
@@ -87,8 +91,8 @@ void positionModeInit(){
   i_range_z  = 0.4;
 
   // Attitude
-  kR_xy = 70000; // P
-  kw_xy = 20000; // D
+  kR_xy = 60000; // P
+  kw_xy = 15000; // D
   ki_m_xy = 0.05; // I
   i_range_m_xy = 1.0;
 
@@ -100,9 +104,17 @@ void positionModeInit(){
 
 }
 
-
+void controllerMellingerReset(void)
+{
+  i_error_x = 0;
+  i_error_y = 0;
+  i_error_z = 0;
+  i_error_m_x = 0;
+  i_error_m_y = 0;
+  i_error_m_z = 0;
+}
 void attitudeModeInit(){
-
+  controllerMellingerReset();
   // XY Position PID
   kp_xy = 0.4;       // P
   kd_xy = 0.2;       // D
@@ -119,6 +131,7 @@ void attitudeModeInit(){
   kR_xy = 70000; // P
   kw_xy = 20000; // D
   ki_m_xy = 0.05; // I
+  kd_omega_rp=200;
   i_range_m_xy = 1.0;
 
   // Yaw
@@ -129,15 +142,7 @@ void attitudeModeInit(){
 
 }
 
-void controllerMellingerReset(void)
-{
-  i_error_x = 0;
-  i_error_y = 0;
-  i_error_z = 0;
-  i_error_m_x = 0;
-  i_error_m_y = 0;
-  i_error_m_z = 0;
-}
+
 
 void controllerMellingerInit(void)
 {
@@ -277,6 +282,12 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
       float y = q.y;
       float z = q.z;
       float w = q.w;
+      attitudeDesired.roll=0;
+      attitudeDesired.pitch=0;
+      attitudeDesired.yaw=0;
+        rateDesired.roll=0;
+      rateDesired.pitch=0;
+      rateDesired.yaw=0;
       eR.x = (-1 + 2*fsqr(x) + 2*fsqr(y))*y_axis_desired.z + z_axis_desired.y - 2*(x*y_axis_desired.x*z + y*y_axis_desired.y*z - x*y*z_axis_desired.x + fsqr(x)*z_axis_desired.y + fsqr(z)*z_axis_desired.y - y*z*z_axis_desired.z) +    2*w*(-(y*y_axis_desired.x) - z*z_axis_desired.x + x*(y_axis_desired.y + z_axis_desired.z));
       eR.y = x_axis_desired.z - z_axis_desired.x - 2*(fsqr(x)*x_axis_desired.z + y*(x_axis_desired.z*y - x_axis_desired.y*z) - (fsqr(y) + fsqr(z))*z_axis_desired.x + x*(-(x_axis_desired.x*z) + y*z_axis_desired.y + z*z_axis_desired.z) + w*(x*x_axis_desired.y + z*z_axis_desired.y - y*(x_axis_desired.x + z_axis_desired.z)));
       eR.z = y_axis_desired.x - 2*(y*(x*x_axis_desired.x + y*y_axis_desired.x - x*y_axis_desired.y) + w*(x*x_axis_desired.z + y*y_axis_desired.z)) + 2*(-(x_axis_desired.z*y) + w*(x_axis_desired.x + y_axis_desired.y) + x*y_axis_desired.z)*z - 2*y_axis_desired.x*fsqr(z) + x_axis_desired.y*(-1 + 2*fsqr(x) + 2*fsqr(z));
@@ -291,7 +302,15 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
     
   }
   else{
-    attitudeModeInit();
+    
+      attitudeDesired.roll=setpoint->attitude.roll;
+      attitudeDesired.pitch=-setpoint->attitude.pitch;
+      attitudeDesired.yaw=setpoint->attitude.yaw;
+       rateDesired.roll=setpoint->attitudeRate.roll;
+      rateDesired.pitch=-setpoint->attitudeRate.pitch;
+      rateDesired.yaw=setpoint->attitudeRate.yaw;
+
+
       struct vec setpoint_rpy=  mkvec(setpoint->attitude.roll, setpoint->attitude.pitch, setpoint->attitude.yaw);
       struct quat qq=rpy2quat(setpoint_rpy);
       //struct quat qq=mkquat(setpoint->attitudeQuaternion.x, setpoint->attitudeQuaternion.y, setpoint->attitudeQuaternion.z, setpoint->attitudeQuaternion.w);
@@ -357,6 +376,7 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
     M.z = -kR_z  * eR.z + kw_z  * ew.z + ki_m_z  * i_error_m_z;
   }
   else{
+    attitudeModeInit();
     M.x =kw_xy * ew.x + kd_omega_rp * err_d_roll;
     M.y =kw_xy * ew.y + kd_omega_rp * err_d_pitch;
     M.z =kw_z  * ew.z;
@@ -389,7 +409,7 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
   } else {
 
     if(control->thrust<-1){
-      control->thrust=1;
+      control->thrust=32767;
       control->roll = clamp(M.x, -32000, 32000);
       control->pitch = clamp(M.y, -32000, 32000);
       control->yaw = clamp(-M.z, -32000, 32000);
@@ -455,3 +475,14 @@ LOG_ADD(LOG_FLOAT, i_err_x, &i_error_x)
 LOG_ADD(LOG_FLOAT, i_err_y, &i_error_y)
 LOG_ADD(LOG_FLOAT, i_err_z, &i_error_z)
 LOG_GROUP_STOP(ctrlMel)
+
+
+
+LOG_GROUP_START(controller)
+LOG_ADD(LOG_FLOAT, roll,      &attitudeDesired.roll)
+LOG_ADD(LOG_FLOAT, pitch,     &attitudeDesired.pitch)
+LOG_ADD(LOG_FLOAT, yaw,       &attitudeDesired.yaw)
+LOG_ADD(LOG_FLOAT, rollRate,  &rateDesired.roll)
+LOG_ADD(LOG_FLOAT, pitchRate, &rateDesired.pitch)
+LOG_ADD(LOG_FLOAT, yawRate,   &rateDesired.yaw)
+LOG_GROUP_STOP(controller)

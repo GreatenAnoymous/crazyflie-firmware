@@ -238,7 +238,7 @@ float omega_dx(float t){
 	float r=0;
 	float Phi_g1=180.;
 	float Phi_g3=180.;
-	float omega_max=720/0.52;
+	float omega_max=710/0.52;
 	float gamma1=(1/omega_max)*Phi_g1;
 	float gamma3=(1/omega_max)*Phi_g3;
 	float beta1=-(3./4.)*1.0/(gamma1*gamma1*gamma1)*omega_max;
@@ -246,7 +246,7 @@ float omega_dx(float t){
 	float delta=0.26;
 	if(t<=delta)
 		r=(beta1/3.)*(t-gamma1)*(t-gamma1)*(t-gamma1)-beta1*gamma1*gamma1*t+beta1*gamma1*gamma1*gamma1/3.0;
-	if(t>delta)		
+	else		
 		r=(beta3/3.)*(gamma3+delta-t)*(gamma3+delta-t)*(gamma3+delta-t)-beta3*gamma3*gamma3*(2*gamma3+delta-t)+beta3*gamma3*gamma3*gamma3/3.0;
   return r;
 }
@@ -278,7 +278,7 @@ void attitudeControllerPositionMode(void){
 
 
 void flip_controller2(float eulerRollActual, float eulerPitchActual, float eulerYawActual,float rollRateActual, float pitchRateActual, float yawRateActual,float *rateRollDisired,float *ratePitchDisired,float *rateYawDisired){
-  float omega_des=720;//rateRollDisired,ratePitchDisired,rateYawDisired;
+  float omega_des=710;//rateRollDisired,ratePitchDisired,rateYawDisired;
   attitudeControllerCorrectAttitudePID(eulerRollActual, eulerPitchActual, eulerYawActual,0, 0,  0,
       rateRollDisired, ratePitchDisired, rateYawDisired);
   switch (_state)
@@ -291,8 +291,8 @@ void flip_controller2(float eulerRollActual, float eulerPitchActual, float euler
     t_count=usecTimestamp() / 1e6-t_flip;
     omega_des=omega_dx(t_count);
     *ratePitchDisired=omega_des;
-    *rateRollDisired=0;
-    *rateYawDisired=0;
+    *rateRollDisired=0.;
+    *rateYawDisired=0.;
     attitudeControllerCorrectRatePID(rollRateActual, pitchRateActual, yawRateActual,*rateRollDisired,*ratePitchDisired,*rateYawDisired);
     if(t_count>0.52) _state=COMPLETE;
     break;
