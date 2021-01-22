@@ -287,7 +287,8 @@ static void hoverDecoder(setpoint_t *setpoint, uint8_t type, const void *data, s
   setpoint->position.z = values->zDistance;
 
 
-  setpoint->mode.yaw = modeVelocity;
+  setpoint->mode.yaw = modeAbs;
+  setpoint->attitude.yaw=0;
   setpoint->attitudeRate.yaw = -values->yawrate;
 
 

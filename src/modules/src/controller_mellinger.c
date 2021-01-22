@@ -116,13 +116,13 @@ void attitudeModeInit(){
   i_range_z  = 0.4;
 
   // Attitude
-  kR_xy = 80000; // P
-  kw_xy = 70000; // D
+  kR_xy = 70000; // P
+  kw_xy = 20000; // D
   ki_m_xy = 0.05; // I
   i_range_m_xy = 1.0;
 
   // Yaw
-  kR_z = 140000; // P
+  kR_z = 60000; // P
   kw_z = 12000; // D
   ki_m_z = 50; // I
   i_range_m_z  = 150;
@@ -283,8 +283,15 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
     }
     else  //attitude control! 
     {
-  
-      attitudeModeInit();
+      eR.x=0;
+      eR.y=0;
+      eR.z=0;
+    }
+    
+    
+  }
+  else{
+    attitudeModeInit();
       struct vec setpoint_rpy=  mkvec(setpoint->attitude.roll, setpoint->attitude.pitch, setpoint->attitude.yaw);
       struct quat qq=rpy2quat(setpoint_rpy);
       //struct quat qq=mkquat(setpoint->attitudeQuaternion.x, setpoint->attitudeQuaternion.y, setpoint->attitudeQuaternion.z, setpoint->attitudeQuaternion.w);
@@ -300,18 +307,9 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
       eR.x = (-1 + 2*fsqr(x) + 2*fsqr(y))*y_axis_desired.z + z_axis_desired.y - 2*(x*y_axis_desired.x*z + y*y_axis_desired.y*z - x*y*z_axis_desired.x + fsqr(x)*z_axis_desired.y + fsqr(z)*z_axis_desired.y - y*z*z_axis_desired.z) +    2*w*(-(y*y_axis_desired.x) - z*z_axis_desired.x + x*(y_axis_desired.y + z_axis_desired.z));
       eR.y = x_axis_desired.z - z_axis_desired.x - 2*(fsqr(x)*x_axis_desired.z + y*(x_axis_desired.z*y - x_axis_desired.y*z) - (fsqr(y) + fsqr(z))*z_axis_desired.x + x*(-(x_axis_desired.x*z) + y*z_axis_desired.y + z*z_axis_desired.z) + w*(x*x_axis_desired.y + z*z_axis_desired.y - y*(x_axis_desired.x + z_axis_desired.z)));
       eR.z = y_axis_desired.x - 2*(y*(x*x_axis_desired.x + y*y_axis_desired.x - x*y_axis_desired.y) + w*(x*x_axis_desired.z + y*y_axis_desired.z)) + 2*(-(x_axis_desired.z*y) + w*(x_axis_desired.x + y_axis_desired.y) + x*y_axis_desired.z)*z - 2*y_axis_desired.x*fsqr(z) + x_axis_desired.y*(-1 + 2*fsqr(x) + 2*fsqr(z));
-
-    }
-    eR.y = -eR.y;
-    
-  }
-  else{
-    eR.x=0;
-    eR.y=0;
-    eR.z=0;
   
   }
-  
+  eR.y = -eR.y;
 
   //debug
   
@@ -389,17 +387,32 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
     cmd_yaw = control->yaw;
 
   } else {
+
+    if(control->thrust<-1){
+      control->thrust=1;
+      control->roll = clamp(M.x, -32000, 32000);
+      control->pitch = clamp(M.y, -32000, 32000);
+      control->yaw = clamp(-M.z, -32000, 32000);
+
+      cmd_roll = control->roll;
+      cmd_pitch = control->pitch;
+      cmd_yaw = control->yaw;
+    }
+    else{
+      control->thrust=0;
+      control->roll=0;
+      control->yaw=0;
+      control->pitch=0;
+      cmd_roll = control->roll;
+      cmd_pitch = control->pitch;
+      cmd_yaw = control->yaw;
+       controllerMellingerReset();
+    }
     //control->roll = clamp(M.x, -32000, 32000);
     //control->pitch = clamp(M.y, -32000, 32000);
     //control->yaw =clamp(-M.z, -32000, 32000);
-    control->thrust=0;
-    control->roll=0;
-    control->yaw=0;
-    control->pitch=0;
-    cmd_roll = control->roll;
-    cmd_pitch = control->pitch;
-    cmd_yaw = control->yaw;
-    controllerMellingerReset();
+    
+   
   }
   
 }
