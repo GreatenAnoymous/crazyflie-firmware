@@ -197,9 +197,12 @@ void attitudeControllerResetAllPID(void)
 void attitudeControllerGetActuatorOutput(int16_t* roll, int16_t* pitch, int16_t* yaw)
 {
   if(agg_mode){
-    *roll = clamp(rollOutput,-10920,10920);
-    *pitch = clamp(pitchOutput,-32767,32767);
-    *yaw = clamp(yawOutput,-10920,10920);
+    // *roll = clamp(rollOutput,-10920,10920);
+    // *pitch = clamp(pitchOutput,-32767,32767);
+    // *yaw = clamp(yawOutput,-10920,10920);
+    *roll = rollOutput;
+    *pitch = pitchOutput;
+    *yaw = yawOutput;
   }
   else{
     *roll = rollOutput;
