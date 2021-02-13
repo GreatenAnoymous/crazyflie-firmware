@@ -154,9 +154,9 @@ void attitudeControllerAgressiveMode(void){
     pidReset(&pidYaw);
     pidInit(&pidPitchRate,  0, 500,  0,  5,
       dt, ATTITUDE_RATE, ATTITUDE_RATE_LPF_CUTOFF_FREQ, ATTITUDE_RATE_LPF_ENABLE);
-    pidInit(&pidRollRate,  0, 50,  0,  10,
+    pidInit(&pidRollRate,  0, 250,  0,  10,
       dt, ATTITUDE_RATE, ATTITUDE_RATE_LPF_CUTOFF_FREQ, ATTITUDE_RATE_LPF_ENABLE);
-    pidInit(&pidYawRate,  0, 50,  0,  10,
+    pidInit(&pidYawRate,  0, 250,  0,  10,
       dt, ATTITUDE_RATE, ATTITUDE_RATE_LPF_CUTOFF_FREQ, ATTITUDE_RATE_LPF_ENABLE);
 
   agg_mode=true;
