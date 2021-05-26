@@ -13,13 +13,23 @@
 #include "position_controller.h"
 #include "controller_mellinger.h"
 
+
+////////////////////////////////////////////////////
+
+#include "estimator_kalman.h"
+
+///////////////////////////////////////////////////
+
 #define GRAVITY_MAGNITUDE (9.81f)
+
+
+
 
 static float g_vehicleMass = 0.032; // TODO: should be CF global for other modules
 static float massThrust = 132000;
 
 // XY Position PID
-static float kp_xy = 0.5;       // P
+static float kp_xy = 0.4;       // P
 static float kd_xy = 0.2;       // D
 static float ki_xy = 0.05;      // I
 static float i_range_xy = 2.0;
@@ -43,7 +53,7 @@ static float ki_m_z = 500; // I
 static float i_range_m_z  = 1500;
 
 // roll and pitch angular velocity
-static float kd_omega_rp = 200; // D
+static float kd_omega_rp = 300; // D
 
 
 // Helper variables
@@ -76,8 +86,56 @@ static float accelz;
 static attitude_t attitudeDesired;
 static attitude_t rateDesired;
 
+bool if_init=false;
+
+void controllerMellingerReset(void)
+{
+  i_error_x = 0;
+  i_error_y = 0;
+  i_error_z = 0;
+  i_error_m_x = 0;
+  i_error_m_y = 0;
+  i_error_m_z = 0;
+}
+
+
+
 void positionModeInit(){
 
+        // XY Position PID
+    kp_xy = 0.4;       // P
+    kd_xy = 0.2;       // D
+    ki_xy = 0.05;      // I
+    i_range_xy = 2.0;
+
+    // Z Position
+    kp_z = 1.25;       // P
+    kd_z = 0.4;        // D
+    ki_z = 0.05;       // I
+    i_range_z  = 0.4;
+
+    // Attitude
+    kR_xy = 60000; // P
+    kw_xy = 20000; // D
+    ki_m_xy = 0.05; // I
+    i_range_m_xy = 1.0;
+
+    // Yaw
+    kR_z = 60000; // P
+    kw_z = 12000; // D
+    ki_m_z = 500; // I
+    i_range_m_z  = 1500;
+    
+    controllerMellingerReset();
+   
+ 
+    set_flip_flag(0);
+}
+
+
+void attitudeModeInit(){
+  controllerMellingerReset();
+  set_flip_flag(1);
   // XY Position PID
   kp_xy = 0.4;       // P
   kd_xy = 0.2;       // D
@@ -92,43 +150,6 @@ void positionModeInit(){
 
   // Attitude
   kR_xy = 60000; // P
-  kw_xy = 15000; // D
-  ki_m_xy = 0.05; // I
-  i_range_m_xy = 1.0;
-
-  // Yaw
-  kR_z = 60000; // P
-  kw_z = 12000; // D
-  ki_m_z = 500; // I
-  i_range_m_z  = 1500;
-
-}
-
-void controllerMellingerReset(void)
-{
-  i_error_x = 0;
-  i_error_y = 0;
-  i_error_z = 0;
-  i_error_m_x = 0;
-  i_error_m_y = 0;
-  i_error_m_z = 0;
-}
-void attitudeModeInit(){
-  controllerMellingerReset();
-  // XY Position PID
-  kp_xy = 0.4;       // P
-  kd_xy = 0.2;       // D
-  ki_xy = 0.05;      // I
-  i_range_xy = 2.0;
-
-  // Z Position
-  kp_z = 1.25;       // P
-  kd_z = 0.4;        // D
-  ki_z = 0.05;       // I
-  i_range_z  = 0.4;
-
-  // Attitude
-  kR_xy = 70000; // P
   kw_xy = 20000; // D
   ki_m_xy = 0.05; // I
   kd_omega_rp=200;
@@ -285,7 +306,7 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
       attitudeDesired.roll=0;
       attitudeDesired.pitch=0;
       attitudeDesired.yaw=0;
-        rateDesired.roll=0;
+      rateDesired.roll=0;
       rateDesired.pitch=0;
       rateDesired.yaw=0;
       eR.x = (-1 + 2*fsqr(x) + 2*fsqr(y))*y_axis_desired.z + z_axis_desired.y - 2*(x*y_axis_desired.x*z + y*y_axis_desired.y*z - x*y*z_axis_desired.x + fsqr(x)*z_axis_desired.y + fsqr(z)*z_axis_desired.y - y*z*z_axis_desired.z) +    2*w*(-(y*y_axis_desired.x) - z*z_axis_desired.x + x*(y_axis_desired.y + z_axis_desired.z));
@@ -302,11 +323,11 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
     
   }
   else{
-    
+      set_flip_flag(1);
       attitudeDesired.roll=setpoint->attitude.roll;
       attitudeDesired.pitch=-setpoint->attitude.pitch;
       attitudeDesired.yaw=setpoint->attitude.yaw;
-       rateDesired.roll=setpoint->attitudeRate.roll;
+      rateDesired.roll=setpoint->attitudeRate.roll;
       rateDesired.pitch=-setpoint->attitudeRate.pitch;
       rateDesired.yaw=setpoint->attitudeRate.yaw;
 
@@ -391,7 +412,7 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
     control->thrust = massThrust * current_thrust;
   }
 
-  cmd_thrust = control->thrust;
+  
   r_roll = radians(sensors->gyro.x);
   r_pitch = -radians(sensors->gyro.y);
   r_yaw = radians(sensors->gyro.z);
@@ -401,19 +422,20 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
     control->roll = clamp(M.x, -32000, 32000);
     control->pitch = clamp(M.y, -32000, 32000);
     control->yaw = clamp(-M.z, -32000, 32000);
-
+    control->thrust=clamp(control->thrust,0,64000);
     cmd_roll = control->roll;
     cmd_pitch = control->pitch;
     cmd_yaw = control->yaw;
+    cmd_thrust = control->thrust;
 
   } else {
 
     if(control->thrust<-1){
-      control->thrust=32767;
+      control->thrust=0;
       control->roll = clamp(M.x, -32000, 32000);
       control->pitch = clamp(M.y, -32000, 32000);
       control->yaw = clamp(-M.z, -32000, 32000);
-
+      
       cmd_roll = control->roll;
       cmd_pitch = control->pitch;
       cmd_yaw = control->yaw;
@@ -426,6 +448,7 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
       cmd_roll = control->roll;
       cmd_pitch = control->pitch;
       cmd_yaw = control->yaw;
+      
        controllerMellingerReset();
     }
     //control->roll = clamp(M.x, -32000, 32000);
@@ -478,11 +501,11 @@ LOG_GROUP_STOP(ctrlMel)
 
 
 
-// LOG_GROUP_START(controller)
-// LOG_ADD(LOG_FLOAT, roll,      &attitudeDesired.roll)
-// LOG_ADD(LOG_FLOAT, pitch,     &attitudeDesired.pitch)
-// LOG_ADD(LOG_FLOAT, yaw,       &attitudeDesired.yaw)
-// LOG_ADD(LOG_FLOAT, rollRate,  &rateDesired.roll)
-// LOG_ADD(LOG_FLOAT, pitchRate, &rateDesired.pitch)
-// LOG_ADD(LOG_FLOAT, yawRate,   &rateDesired.yaw)
-// LOG_GROUP_STOP(controller)
+LOG_GROUP_START(controller)
+LOG_ADD(LOG_FLOAT, roll,      &attitudeDesired.roll)
+LOG_ADD(LOG_FLOAT, pitch,     &attitudeDesired.pitch)
+LOG_ADD(LOG_FLOAT, yaw,       &attitudeDesired.yaw)
+LOG_ADD(LOG_FLOAT, rollRate,  &rateDesired.roll)
+LOG_ADD(LOG_FLOAT, pitchRate, &rateDesired.pitch)
+LOG_ADD(LOG_FLOAT, yawRate,   &rateDesired.yaw)
+LOG_GROUP_STOP(controller)

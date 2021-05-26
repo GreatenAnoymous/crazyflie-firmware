@@ -34,6 +34,7 @@
 #include "platform.h"
 #include "motors.h"
 #include "debug.h"
+// #include "math.h"
 
 static bool motorSetEnable = false;
 
@@ -74,16 +75,60 @@ void powerStop()
   motorsSetRatio(MOTOR_M3, 0);
   motorsSetRatio(MOTOR_M4, 0);
 }
-
+// static inline float max(float x, float y){
+//   if(x>y) return x;
+//   return y;
+// }
+// static inline float min(float x, float y){
+//   if(x<y) return x;
+//   return y;
+// }
 void powerDistribution(const control_t *control)
 {
   #ifdef QUAD_FORMATION_X
     int16_t r = control->roll / 2.0f;
     int16_t p = control->pitch / 2.0f;
+
+    // float m1 = control->thrust - r + p + control->yaw;
+    // float m2 = control->thrust - r - p - control->yaw; 
+    // float m3 = control->thrust - r - p - control->yaw;
+    // float m4 = control->thrust + r + p - control->yaw;
     motorPower.m1 = limitThrust(control->thrust - r + p + control->yaw);
     motorPower.m2 = limitThrust(control->thrust - r - p - control->yaw);
     motorPower.m3 =  limitThrust(control->thrust + r - p + control->yaw);
     motorPower.m4 =  limitThrust(control->thrust + r + p - control->yaw);
+    // float ma = max(max(m1, m2), max(m3, m4));
+    // float mi = min(min(m1, m2), min(m3, m4));
+    // if(ma <= 65535 && mi >= 0){
+    //   motorPower.m1 = m1;
+    //   motorPower.m2 = m2;
+    //   motorPower.m3 = m3;
+    //   motorPower.m4 = m4;
+    // }else if(mi > 0){
+    //   motorPower.m1 = m1 * 65535 / ma;
+    //   motorPower.m2 = m2 * 65535 / ma;
+    //   motorPower.m3 = m3 * 65535 / ma;
+    //   motorPower.m4 = m4 * 65535 / ma;
+    // }else{ 
+    //   if(ma < 0){
+    //     motorPower.m1=0;
+    //     motorPower.m2=0;
+    //     motorPower.m3=0;
+    //     motorPower.m4=0;
+    //   }else if(ma<=65535){
+    //     motorPower.m1 = ma - (ma-m1) / (ma-mi) * ma;
+    //     motorPower.m2 = ma - (ma-m2) / (ma-mi) * ma;
+    //     motorPower.m3 = ma - (ma-m3) / (ma-mi) * ma;
+    //     motorPower.m4 = ma - (ma-m4) / (ma-mi) * ma;
+    //   }else{
+    //     motorPower.m1 = (m1 - mi) * (65535) / (ma -mi);
+    //     motorPower.m2 = (m2 - mi) * (65535) / (ma -mi);
+    //     motorPower.m3 = (m3 - mi) * (65535) / (ma -mi);
+    //     motorPower.m4 = (m4 - mi) * (65535) / (ma -mi);
+
+    //   }
+    //   // else if(ma > 65535)
+    // }
   #else // QUAD_FORMATION_NORMAL
     motorPower.m1 = limitThrust(control->thrust + control->pitch +
                                control->yaw);

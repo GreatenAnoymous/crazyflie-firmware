@@ -72,7 +72,7 @@ enum packet_type {
   fullStateType     = 6,
   positionType      = 7,
   angularVelocityType = 8,
-  rateType =9
+  attitudeType =9
   
 };
 
@@ -113,7 +113,7 @@ static void velocityDecoder(setpoint_t *setpoint, uint8_t type, const void *data
   setpoint->velocity.z = values->vz;
 
   setpoint->mode.yaw = modeVelocity;
-
+  //setpoint->attitude.yaw=-values->yawrate;
   setpoint->attitudeRate.yaw = -values->yawrate;
 }
 
@@ -406,36 +406,35 @@ static void angularVelocityDecoder(setpoint_t *setpoint, uint8_t type, const voi
 /* angularstate
  * Set the absolute postition and orientation
  */
- struct ratePacket_s {
-   float rateRoll;     
-   float ratePitch;
-   float rateYaw;
-   float accRoll;
-   float accPitch;
-   float accYaw;
-   float vx;
-   float vy;
-   float vz;
+ struct attitudePacket_s {
+   float roll;     
+   float pitch;
+   float yaw;
+   float rollRate;
+   float pitchRate;
+   float yawRate;
+   uint16_t thrust;
+
  } __attribute__((packed));
-static void rateDecoder(setpoint_t *setpoint, uint8_t type, const void *data, size_t datalen)
+static void attitudeDecoder(setpoint_t *setpoint, uint8_t type, const void *data, size_t datalen)
 {
-  const struct ratePacket_s *values = data;
-
-  setpoint->mode.x = modeVelocity;
-  setpoint->mode.y = modeVelocity;
-  setpoint->mode.z = modeVelocity;
-
-  setpoint->velocity.x = values->vx;
-  setpoint->velocity.y = values->vy;
-  setpoint->velocity.z = values->vz;
+  const struct attitudePacket_s *values = data;
   
-  setpoint->mode.roll=modeVelocity;
-  setpoint->mode.pitch=modeVelocity;
-  setpoint->mode.yaw=modeVelocity;
+  setpoint->mode.roll=modeAbs;
+  setpoint->mode.pitch=modeAbs;
+  setpoint->mode.yaw=modeAbs;
 
-  setpoint->attitudeRate.yaw = -values->rateYaw;
-  setpoint->attitudeRate.roll = values->rateRoll;
-  setpoint->attitudeRate.pitch = values->ratePitch;
+
+  setpoint->attitudeRate.yaw = -values->yawRate;
+  setpoint->attitudeRate.roll = values->rollRate;
+  setpoint->attitudeRate.pitch = values->pitchRate;
+
+
+  setpoint->attitude.roll = values->roll;
+  setpoint->attitude.pitch = values->pitch;
+  setpoint->attitude.yaw=0;
+
+  setpoint->thrust=values->thrust;
 }
 
 
@@ -450,7 +449,7 @@ const static packetDecoder_t packetDecoders[] = {
   [fullStateType]     = fullStateDecoder,
   [positionType]      = positionDecoder,
   [angularVelocityType] = angularVelocityDecoder,
-  [rateType] =  rateDecoder,
+  [attitudeType] =  attitudeDecoder,
 };
 
 /* Decoder switch */

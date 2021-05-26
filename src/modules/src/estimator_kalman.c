@@ -77,6 +77,12 @@
 #define DEBUG_MODULE "ESTKALMAN"
 #include "debug.h"
 
+///////////////////////////////////////
+
+static int mode_flip_flag=0;
+
+///////////////////////////////////////
+
 
 // #define KALMAN_USE_BARO_UPDATE
 
@@ -561,7 +567,7 @@ static bool updateQueuedMeasurments(const Axis3f *gyro, const uint32_t tick) {
   flowMeasurement_t flow;
   while (stateEstimatorHasFlowPacket(&flow))
   {
-    kalmanCoreUpdateWithFlow(&coreData, &flow, gyro);
+    if(mode_flip_flag==0)kalmanCoreUpdateWithFlow(&coreData, &flow, gyro);
     doneUpdate = true;
   }
 
@@ -695,6 +701,13 @@ void estimatorKalmanGetEstimatedPos(point_t* pos) {
 void estimatorKalmanGetEstimatedRot(float * rotationMatrix) {
   memcpy(rotationMatrix, coreData.R, 9*sizeof(float));
 }
+
+///////////////////////////////////////
+
+void set_flip_flag(int mode){
+  mode_flip_flag=mode;
+}
+///////////////////////////////////////
 
 // Temporary development groups
 LOG_GROUP_START(kalman_states)

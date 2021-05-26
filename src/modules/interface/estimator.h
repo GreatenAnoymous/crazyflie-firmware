@@ -28,12 +28,16 @@
 
 #include "stabilizer_types.h"
 
+
+
 typedef enum {
   anyEstimator = 0,
   complementaryEstimator,
   kalmanEstimator,
   StateEstimatorTypeCount,
 } StateEstimatorType;
+
+
 
 void stateEstimatorInit(StateEstimatorType estimator);
 bool stateEstimatorTest(void);

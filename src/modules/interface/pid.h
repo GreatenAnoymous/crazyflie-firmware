@@ -30,7 +30,7 @@
 #include <stdbool.h>
 #include "filter.h"
 
-#define PID_ROLL_RATE_KP  250.0
+#define PID_ROLL_RATE_KP  140.0
 #define PID_ROLL_RATE_KI  500.0
 #define PID_ROLL_RATE_KD  2.5
 #define PID_ROLL_RATE_INTEGRATION_LIMIT    33.3
@@ -63,6 +63,9 @@
 
 #define DEFAULT_PID_INTEGRATION_LIMIT 5000.0
 #define DEFAULT_PID_OUTPUT_LIMIT      0.0
+
+
+// #define MAX_RATE 50
 
 
 typedef struct

@@ -38,6 +38,7 @@
 #define ATTITUDE_RATE_LPF_CUTOFF_FREQ 40.0f
 #define ATTITUDE_RATE_LPF_ENABLE false
 
+#define HOVER_MODE_MAX_ATTITUDE_RATE 150.0f
 
 static inline int16_t saturateSignedInt16(float in)
 {
@@ -118,6 +119,13 @@ void attitudeControllerCorrectRatePID(
   yawOutput = saturateSignedInt16(pidUpdate(&pidYawRate, yawRateActual, true));
 }
 
+float clampf(float u,float minf,float maxf){
+  if(u>maxf) return maxf;
+  if(u<minf) return minf;
+  return u;
+
+}
+
 void attitudeControllerCorrectAttitudePID(
        float eulerRollActual, float eulerPitchActual, float eulerYawActual,
        float eulerRollDesired, float eulerPitchDesired, float eulerYawDesired,
@@ -139,6 +147,11 @@ void attitudeControllerCorrectAttitudePID(
     yawError += 360.0f;
   pidSetError(&pidYaw, yawError);
   *yawRateDesired = pidUpdate(&pidYaw, eulerYawActual, false);
+  // if(pos_mode){
+  //   //*yawRateDesired=clampf(*yawRateDesired,-HOVER_MODE_MAX_ATTITUDE_RATE,HOVER_MODE_MAX_ATTITUDE_RATE);
+  //   *rollRateDesired=clampf(*rollRateDesired,-HOVER_MODE_MAX_ATTITUDE_RATE,HOVER_MODE_MAX_ATTITUDE_RATE);
+  //   *pitchRateDesired=clampf(*pitchRateDesired,-HOVER_MODE_MAX_ATTITUDE_RATE,HOVER_MODE_MAX_ATTITUDE_RATE);
+  // }
 }
 
 void attitudeControllerResetRollAttitudePID(void)

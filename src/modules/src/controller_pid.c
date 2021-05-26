@@ -6,10 +6,13 @@
 #include "sensfusion6.h"
 #include "position_controller.h"
 #include "controller_pid.h"
-
 #include "log.h"
 #include "param.h"
 #include "math3d.h"
+
+////////////////////////////////////////////////////
+
+#include "estimator_kalman.h"
 
 #define ATTITUDE_UPDATE_DT    (float)(1.0f/ATTITUDE_RATE)
 
@@ -62,6 +65,7 @@ void controllerPid(control_t *control, setpoint_t *setpoint,
                                          const state_t *state,
                                          const uint32_t tick)
 {
+ 
   if (RATE_DO_EXECUTE(ATTITUDE_RATE, tick)) {
     // Rate-controled YAW is moving YAW angle setpoint
     if (setpoint->mode.yaw == modeVelocity) {
@@ -96,6 +100,7 @@ void controllerPid(control_t *control, setpoint_t *setpoint,
     // behavior if level mode is engaged later
     if (setpoint->mode.roll == modeVelocity) {
       rateDesired.roll = setpoint->attitudeRate.roll;
+     
       attitudeControllerAgressiveMode();
     }
     else{
@@ -103,10 +108,11 @@ void controllerPid(control_t *control, setpoint_t *setpoint,
     }
     if (setpoint->mode.pitch == modeVelocity) {
       rateDesired.pitch = setpoint->attitudeRate.pitch;
-      
+      set_flip_flag(1);
       attitudeControllerAgressiveMode();
     }
     else{
+      set_flip_flag(0);
       attitudeControllerPositionMode();
     }
 

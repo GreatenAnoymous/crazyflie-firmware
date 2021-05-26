@@ -57,6 +57,10 @@
 #include <stdint.h>
 #include "stabilizer_types.h"
 
+////////////////////////////////////
+void set_flip_flag(int);
+///////////////////////////////////
+
 void estimatorKalmanInit(void);
 bool estimatorKalmanTest(void);
 void estimatorKalman(state_t *state, sensorData_t *sensors, control_t *control, const uint32_t tick);
